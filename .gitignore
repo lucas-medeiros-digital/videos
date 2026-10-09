@@ -1,0 +1,11 @@
+node_modules/
+salida/
+.env
+*.log
+
+# Videos crudos: pesan mucho, no van al repo.
+public/*.mp4
+public/*.mov
+public/*.MOV
+public/*.m4v
+!public/.gitkeep

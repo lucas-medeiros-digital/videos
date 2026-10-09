@@ -14,17 +14,18 @@ export const REEL = {
 export const MOMENTO = {
   /** El telefono aparece en pantalla. */
   inicio: 0,
-  /**
-   * Arranca la percusion. Antes del agente no hay musica: solo los tics de
-   * los mensajes sobre el silencio, que es lo que construye el agobio.
-   */
-  musica: 133,
+  /** Entra la textura de fondo del tramo en que el agente trabaja. */
+  textura: 140,
+  /** Arranca la subida tonal del cierre, para que la nota final caiga sobre el logo. */
+  marca: 352,
   /** Cae el primer mensaje sin responder. */
   primerMensaje: 1,
-  /** Arranca el riser: se nota que esto se va de las manos. */
-  riser: 100,
-  /** Whoosh de entrada, justo antes del golpe. */
-  whoosh: 126,
+  /**
+   * Arranca el barrido que anuncia al agente. Dura 30 frames y termina
+   * justo sobre el golpe; los 10 frames de silencio que quedan entre la
+   * ultima notificacion y el barrido son los que crean la expectativa.
+   */
+  barrido: 105,
   /** EL MOMENTO: entra el agente de WhatsApp. */
   agenteEntra: 133,
   /** El cartel del agente termina de asentarse. */
@@ -69,6 +70,10 @@ export const TICS_MENSAJES: number[] = BURBUJAS.map((f) =>
 export const SWISHES_RESUELTOS: number[] = [145, 149, 160, 166].map(
   (f) => f - ADELANTO,
 );
+
+/** Hasta donde llega el reel dentro de la version larga: despues del
+ *  titular y antes de que aparezca el logo, que alli cierra todo el video. */
+export const REEL_EN_LARGO = 390;
 
 /** Paleta tomada del video: verde oscuro de fondo, dorado de marca. */
 export const MARCA = {

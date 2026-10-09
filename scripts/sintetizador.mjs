@@ -180,6 +180,64 @@ export class Pista {
     return this;
   }
 
+  /**
+   * Reverb de placa, tipo Schroeder: cuatro peines en paralelo que crean
+   * la cola, y dos pasatodo en serie que la difuminan para que no suene
+   * a eco repetido.
+   *
+   * Es lo que hace que un sonido corto no suene pegado al microfono. Los
+   * tiempos de retardo son primos entre si a proposito: si fueran
+   * multiplos, sus repeticiones coincidirian y se escucharia una nota.
+   */
+  reverb({ tiempo = 1.6, mezcla = 0.26, amplitud = 1 } = {}) {
+    const PEINES = [1557, 1617, 1491, 1422];
+    const PASATODO = [225, 556];
+
+    const procesar = (entrada, desfase) => {
+      const seco = Float64Array.from(entrada);
+      const humedo = new Float64Array(this.n);
+
+      for (const base of PEINES) {
+        const retardo = Math.round((base + desfase) * (SR / 44100));
+        const realimentacion = Math.pow(10, (-3 * retardo) / (tiempo * SR));
+        const buffer = new Float64Array(retardo);
+        let i = 0;
+        let filtrado = 0;
+        for (let n = 0; n < this.n; n++) {
+          const leido = buffer[i];
+          humedo[n] += leido;
+          // Un pasabajos dentro del lazo: los agudos se apagan antes que
+          // los graves, igual que en una sala real.
+          filtrado = leido * 0.26 + filtrado * 0.74;
+          buffer[i] = seco[n] + filtrado * realimentacion;
+          i = (i + 1) % retardo;
+        }
+      }
+
+      for (const base of PASATODO) {
+        const retardo = Math.round((base + desfase) * (SR / 44100));
+        const buffer = new Float64Array(retardo);
+        let i = 0;
+        for (let n = 0; n < this.n; n++) {
+          const leido = buffer[i];
+          const v = -humedo[n] + leido;
+          buffer[i] = humedo[n] + leido * 0.5;
+          humedo[n] = v;
+          i = (i + 1) % retardo;
+        }
+      }
+
+      for (let n = 0; n < this.n; n++) {
+        entrada[n] = seco[n] * (1 - mezcla) + humedo[n] * mezcla * 0.25 * amplitud;
+      }
+    };
+
+    // Desfase distinto por canal: es lo que abre la cola en estereo.
+    procesar(this.L, 0);
+    procesar(this.R, 23);
+    return this;
+  }
+
   /** Curva de volumen por tramos: [[segundo, ganancia], ...]. */
   curva(puntos) {
     for (let i = 0; i < this.n; i++) {
@@ -410,6 +468,91 @@ export const vocal = ({
     const ataque = Math.min(t / 0.03, 1);
     const salidaEnv = Math.min((dur - t) / 0.09, 1);
     salida[i] = v * ataque * Math.max(salidaEnv, 0) * gan;
+  }
+  return salida;
+};
+
+// --- Campana FM --------------------------------------------------------
+
+/**
+ * Campana por FM. Es lo que da el timbre cristalino de un sonido de
+ * producto: una portadora modulada por otra en una relacion no entera,
+ * con el indice de modulacion cayendo mas rapido que el volumen.
+ *
+ * `relacion` fuera de los enteros (2.76, 3.47) da parciales inarmonicos,
+ * que es lo que distingue una campana de un organo.
+ */
+export const campana = ({
+  nota = "C5",
+  dur = 2,
+  relacion = 2.76,
+  indice = 5,
+  gan = 0.3,
+  caida = 2.4,
+  caidaIndice = 7,
+} = {}) => {
+  const f = typeof nota === "number" ? nota : hz(nota);
+  const n = Math.ceil(dur * SR);
+  const salida = new Float64Array(n);
+  let fasePortadora = 0;
+  let faseModuladora = 0;
+
+  for (let i = 0; i < n; i++) {
+    const t = i / SR;
+    faseModuladora += (f * relacion) / SR;
+    const modulacion =
+      Math.sin(2 * Math.PI * faseModuladora) * indice * Math.exp(-caidaIndice * t);
+    fasePortadora += f / SR;
+    const v = Math.sin(2 * Math.PI * fasePortadora + modulacion);
+    // Ataque de 3 ms: sin esto el arranque chasquea.
+    const ataque = Math.min(t / 0.003, 1);
+    salida[i] = v * Math.exp(-caida * t) * ataque * gan;
+  }
+  return salida;
+};
+
+/** Glissando tonal: una nota que se desliza de una frecuencia a otra. */
+export const glissando = ({
+  desde = 200,
+  hasta = 1800,
+  dur = 0.8,
+  gan = 0.25,
+  curva = 2,
+  forma = "seno",
+} = {}) => {
+  const n = Math.ceil(dur * SR);
+  const salida = new Float64Array(n);
+  let fase = 0;
+  for (let i = 0; i < n; i++) {
+    const avance = i / n;
+    const f = desde + (hasta - desde) * Math.pow(avance, curva);
+    fase += f / SR;
+    const v =
+      forma === "seno"
+        ? Math.sin(2 * Math.PI * fase)
+        : Math.sin(2 * Math.PI * fase) * 0.7 + Math.sin(4 * Math.PI * fase) * 0.3;
+    salida[i] = v * gan;
+  }
+  return salida;
+};
+
+/** Aplica una envolvente de volumen por puntos a un arreglo de muestras. */
+export const moldear = (muestras, puntos) => {
+  const n = muestras.length;
+  const salida = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    const avance = i / n;
+    let g = puntos[0][1];
+    for (let k = 0; k < puntos.length - 1; k++) {
+      const [a0, g0] = puntos[k];
+      const [a1, g1] = puntos[k + 1];
+      if (avance >= a0 && avance <= a1) {
+        g = g0 + (g1 - g0) * ((avance - a0) / Math.max(a1 - a0, 1e-9));
+        break;
+      }
+      if (avance > a1) g = g1;
+    }
+    salida[i] = muestras[i] * g;
   }
   return salida;
 };

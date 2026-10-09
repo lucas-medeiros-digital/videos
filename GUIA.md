@@ -215,133 +215,106 @@ Code. Dos cosas al usarlos:
 
 ---
 
-## El reel de Vínculo (audio y efectos sobre un video ya hecho)
+## Los dos videos de Vínculo
 
-La composición `ReelAgente` toma un video terminado y le agrega banda sonora y
-efectos encima. Sirve de ejemplo de cómo trabajar sobre material que ya existe,
-sin rehacer la animación.
+Son dos versiones de la misma pieza. La larga **empieza con el reel corto tal
+cual** y sigue a partir del titular; por eso el reel se corta en el frame 390,
+cuando ya pasó «Ninguna consulta se te escapa» y todavía no apareció el logo.
 
 ```bash
-npm run render:reel        # salida/reel-agente-final.mp4
-npm run master:reel        # ajusta el volumen para redes
+npm run render:corto    # 15,5 s — salida/reel-corto.mp4
+npm run render:largo    # 44,8 s — salida/reel-largo.mp4
+npm run master salida/reel-corto.mp4 salida/reel-corto-master.mp4
 ```
+
+| Composición | Qué es |
+|---|---|
+| `ReelAgente` | El reel original con efectos y diseño de sonido. |
+| `ReelLargo` | El mismo arranque, y después: los cuatro pasos de puesta en marcha y una sola pantalla con el antes y el después. |
+
+`ReelAgente.tsx` exporta las dos piezas por separado — `ReelVisual` (el video
+con los efectos, con un `hasta` para cortarlo antes) y `AudioReel` (los
+sonidos) — así la versión larga reusa exactamente el mismo arranque en vez de
+tener una copia.
 
 ### Dónde se cambian los tiempos
 
-Todo el reel se maneja desde **`src/guion.ts`**. Ahí está en qué frame pasa cada
-cosa, medido cuadro por cuadro sobre el video original a 30 fps:
+Todo en **`src/guion.ts`**, medido cuadro por cuadro sobre el video original:
 
 | Frame | Segundo | Qué pasa |
 |---|---|---|
-| 12 | 0,4 | cae el primer mensaje sin responder |
-| 100 | 3,3 | arranca el riser, la cosa se descontrola |
-| 126 | 4,2 | whoosh de entrada |
+| 0–94 | 0–3,1 | caen los mensajes, en grilla de 9 frames |
+| 105 | 3,5 | arranca el barrido |
 | **133** | **4,43** | **entra el agente** |
-| 139 | 4,6 | el cartel termina de asentarse |
+| 145–166 | 4,8–5,5 | el agente despeja la bandeja |
 | 234 | 7,8 | el contador llega a cero |
 | 237 | 7,9 | aparece el tilde verde |
 | 303 | 10,1 | entra el titular |
-| 393 | 13,1 | logo de Vínculo |
-| 399 | 13,3 | botón Escribinos |
+| 390 | 13,0 | hasta acá llega el reel dentro de la versión larga |
 
-Los mismos números manejan el audio y los efectos, así que mover un momento
-mueve las dos cosas juntas. Si reemplazás el video, estos son los únicos
-valores que hay que volver a medir.
+Los textos de la versión larga (`PASOS`, `HOY`, `CON_AGENTE`) están en arreglos
+arriba de `ReelLargo.tsx`.
 
 ### Qué pasa cuando entra el agente
 
-Cinco cosas al mismo tiempo, en el frame 133:
-
-- **Golpe de sonido**: sub que cae de 130 a 41 Hz, acorde de Do mayor y campana
+- **Sonido**: chasquido que define el instante, sub contenido de 78 a 44 Hz y
+  dos campanas FM en quinta justa, con 2,2 s de cola
 - **Destello** dorado que se va en 12 frames
-- **Dos ondas expansivas** que salen desde el cartel
-- **Asentamiento de cámara** de 3,5 px que se apaga en nueve frames
-- **Barrido de luz** en diagonal, seis frames después
+- **Dos ondas expansivas** desde el cartel
+- **Asentamiento de cámara** de 3,5 px, nueve frames
+- **Barrido de luz** en diagonal
 
-La cámara **no tiembla** antes del golpe: los mensajes son lo que hay que leer y
-cualquier temblor sostenido los vuelve ilegibles. El contraste lo hace el audio,
-que pasa de -20 dB a -10 dB, y la armonía, que resuelve de La menor a Do mayor.
+La cámara **no tiembla** antes: los mensajes son lo que hay que leer. El
+contraste lo hace el audio, que salta 8 dB sobre todo lo demás.
 
 > Cuidado con `extrapolateLeft: "clamp"` en `interpolate`: devuelve el **primer**
 > valor del rango, no cero. Sin un guardia explícito, un efecto pensado para el
-> frame 133 en adelante se aplica también a todos los frames anteriores.
+> frame 133 se aplica también a todos los frames anteriores.
 
-### La banda sonora
+> Y con `<Sequence>`: adentro, `useCurrentFrame()` devuelve el frame **local**.
+> Como todos los tiempos están en frames globales, mezclarlos deja las escenas
+> vacías sin ningún error. Por eso se usa `<Escena desde={} hasta={}>`.
 
-No hay archivos descargados: todo se sintetiza. Son dos scripts porque son dos
-problemas distintos.
+### El diseño de sonido
+
+**No hay música.** Solo efectos, pensados como el lanzamiento de un producto:
+mínimo, preciso y con aire alrededor de cada sonido.
 
 ```bash
-./scripts/generar-audio.sh      # efectos, con ffmpeg
-node scripts/generar-musica.mjs # camas y golpe, con el sintetizador
+npm run sonido    # regenera public/audio/
 ```
 
-Los **efectos** (tic, swish, whoosh, riser, check, pop) salen de expresiones de
-ffmpeg. Para un click corto alcanza y sobra.
+`scripts/sintetizador.mjs` es un sintetizador chico sin dependencias:
+osciladores, ADSR, filtros biquad, campanas FM y una reverb de placa. Tres
+decisiones lo ordenan todo:
 
-La **música** usa `scripts/sintetizador.mjs`, un sintetizador chico sin
-dependencias: osciladores, envolvente ADSR, filtro pasabajos de dos polos y un
-delay. Las expresiones de ffmpeg no dan para esto.
+- Las campanas son **FM con relación no entera** (2,76 · 3,47): eso da el
+  timbre cristalino, metálico sin ser estridente.
+- **Todo lleva reverb.** Un sonido seco suena barato.
+- La tensión se construye con **ritmo y silencio**, nunca subiendo el volumen.
+  Los 10 frames de silencio entre la última notificación y el barrido son los
+  que hacen que la entrada del agente se sienta.
 
-Todo va a **120 BPM** (negra = 15 frames) y la música arranca en el frame 13
-justamente para que el golpe del agente caiga sobre un primer tiempo. La
-armonía sigue al video: **La menor** mientras las consultas se amontonan,
-**Do mayor** cuando entra el agente, **Fa mayor** en el cierre.
-
-Para cambiar el carácter, las notas están escritas por nombre
-(`"A1"`, `"C4"`) en `scripts/generar-musica.mjs`.
+| Sonido | Dónde |
+|---|---|
+| `notificacion-1/2/3` | Cada consulta que llega. Tres variantes alternadas: repetir una sola suena a máquina. |
+| `barrido` | La subida que anuncia al agente. |
+| `activacion` | El agente. Chasquido, sub, campanas y cola larga. |
+| `clic` · `confirmacion` | El agente trabajando. Táctiles y muy al fondo. |
+| `textura` | Aire de fondo en ese tramo, casi inaudible. |
+| `logro` | Cero consultas. Cristalino arriba, cálido abajo. |
+| `marca` | El cierre: una subida y una nota que resuelve. |
 
 ### El volumen para redes
 
-`scripts/masterizar.sh` deja el video en **-14 LUFS** con pico real **-1 dBTP**,
-que es lo que esperan Instagram, TikTok y YouTube. Sin ese paso el reel se
-escucha más bajo que el resto del feed.
+`scripts/masterizar.sh` deja los videos a **-14 LUFS** con pico real bajo
+**-1 dBTP**. Corrige volumen y pico **juntos**, en un lazo sobre el archivo ya
+codificado:
 
-Usa ganancia pareja y un limitador, no `loudnorm` en modo dinámico: ese
-comprime todo el video parejo y el golpe del agente deja de destacar.
-
-
----
-
-## Los otros dos videos
-
-Además del reel hay dos piezas más largas, armadas enteras en Remotion (no
-parten de ningún video previo).
-
-```bash
-npm run render:proceso    # 28 s  — los cuatro pasos
-npm run render:ventajas   # 29 s  — dolores y ventajas
-npm run master salida/proceso.mp4 salida/proceso-master.mp4
-```
-
-| Composición | Qué cuenta |
-|---|---|
-| `ProcesoAgente` | Qué pasa después de contratar: auditamos, entrenamos, conectamos, afinamos. Remata en el plazo: «Día 7, ya está respondiendo». |
-| `VentajasAgente` | Primero los cuatro dolores de hoy, después el mismo giro del reel («Entra tu agente») y las cuatro ventajas. |
-
-El texto de los dos vive en arreglos arriba de cada archivo (`PASOS`, `DOLORES`,
-`VENTAJAS`): se edita ahí, no entre el código de la animación.
-
-### La marca
-
-`src/componentes/marca.tsx` tiene lo compartido: paleta, tipografías, el fondo,
-el titular serif, el subrayado dorado, el logo y el cierre con el botón.
-Cambiar algo ahí lo cambia en los dos videos.
-
-- **Tipografías**: Playfair Display para los titulares (está en
-  `public/fuentes/`, se carga con `delayRender` para que no se renderice ningún
-  frame con la fuente de reemplazo) e Inter para el cuerpo.
-- **Logo**: `public/logo-vinculo.png`, recortado del reel original y con el
-  fondo transparente.
-
-> **`<Sequence>` y los frames**: dentro de una `<Sequence>`, `useCurrentFrame()`
-> devuelve el frame **local**, no el del video. Como todos los tiempos de estos
-> videos están escritos en frames globales, mezclarlos deja las escenas vacías
-> sin ningún error. Por eso se usa `<Escena desde={} hasta={}>` de
-> `marca.tsx`, que trabaja siempre con el frame global.
-
-### El audio de estos dos
-
-Usan `groove-largo.wav`, una versión de 30 s del mismo groove con secciones:
-entra flojo, levanta, baja en el medio y vuelve a subir. Encima van los mismos
-efectos que el reel.
+- Se pisan entre sí: el limitador baja los picos y de paso baja el volumen, así
+  que corregirlos por separado deja el video saturado o bajo.
+- Se mide después de codificar porque el **AAC se pasa casi 2 dB** respecto de
+  lo que entra.
+- Cada perilla hace una cosa: la ganancia mueve el volumen, el techo del
+  limitador mueve el pico. Nunca al revés: bajar la ganancia para domar un pico
+  apaga todo el video.

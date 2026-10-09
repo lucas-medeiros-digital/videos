@@ -31,36 +31,45 @@ medir_pico_real() {
 }
 
 ACTUAL="$(medir_lufs "$ENTRADA")"
-# Se pide un poco de mas porque el limitador siempre devuelve algo.
 GANANCIA="$(echo "$OBJETIVO $ACTUAL" | awk '{printf "%.2f", $1 - $2 + 0.6}')"
-echo "  medido:   ${ACTUAL} LUFS"
-echo "  ganancia: ${GANANCIA} dB  (pareja, no comprime)"
+TECHO=0.74   # techo del limitador, con margen porque el AAC se pasa al codificar
 
-# Techo del limitador, en escala lineal. Arranca con margen porque el AAC
-# se pasa casi 2 dB al codificar.
-TECHO=0.74
+echo "  medido: ${ACTUAL} LUFS"
 
 codificar() {
   ffmpeg -y -v error -i "$ENTRADA" \
-    -af "volume=${GANANCIA}dB,alimiter=limit=${1}:attack=1.5:release=60:level=disabled" \
+    -af "volume=${GANANCIA}dB,alimiter=limit=${TECHO}:attack=1.5:release=60:level=disabled" \
     -c:v copy -c:a aac -b:a 192k -movflags +faststart \
     "$SALIDA"
 }
 
-# Si el archivo ya codificado se pasa del techo, se baja el limitador y NO
-# la ganancia: el limitador toca solo los picos, mientras que bajar la
-# ganancia apagaria todo el video y lo dejaria por debajo del objetivo.
-codificar "$TECHO"
+# Volumen y pico se corrigen juntos, sobre el archivo ya codificado.
+#
+# Van juntos porque se pisan: el limitador baja los picos y de paso baja
+# el volumen general, asi que corregirlos por separado deja el video o
+# saturado o bajo. Y se mide despues de codificar porque el AAC se pasa
+# casi 2 dB respecto de lo que entra.
+#
+# Cada perilla hace una cosa: la ganancia mueve el volumen, el techo del
+# limitador mueve el pico.
+for intento in 1 2 3 4; do
+  codificar
 
-for intento in 1 2 3; do
+  LUFS="$(medir_lufs "$SALIDA")"
   PICO="$(medir_pico_real "$SALIDA")"
-  SOBRA="$(echo "$PICO $PICO_MAXIMO" | awk '{print $1 - $2}')"
-  if [ "$(echo "$SOBRA" | awk '{print ($1 > 0.05) ? 1 : 0}')" = "0" ]; then
-    break
+  FALTA="$(echo "$OBJETIVO $LUFS" | awk '{printf "%.2f", $1 - $2}')"
+  SOBRA="$(echo "$PICO $PICO_MAXIMO" | awk '{printf "%.2f", $1 - $2}')"
+
+  LISTO="$(echo "$FALTA $SOBRA" | awk '{print (($1 < 0.4 && $1 > -0.4) && $2 <= 0.05) ? 1 : 0}')"
+  [ "$LISTO" = "1" ] && break
+
+  echo "  intento ${intento}: ${LUFS} LUFS, pico ${PICO} dBFS"
+  if [ "$(echo "$SOBRA" | awk '{print ($1 > 0.05) ? 1 : 0}')" = "1" ]; then
+    TECHO="$(echo "$TECHO $SOBRA" | awk '{printf "%.4f", $1 * exp(-($2 + 0.2) * log(10) / 20)}')"
   fi
-  TECHO="$(echo "$TECHO $SOBRA" | awk '{printf "%.4f", $1 * exp(-($2 + 0.2) * log(10) / 20)}')"
-  echo "  pico real ${PICO} dBFS: se baja el limitador a ${TECHO}"
-  codificar "$TECHO"
+  if [ "$(echo "$FALTA" | awk '{print ($1 > 0.4 || $1 < -0.4) ? 1 : 0}')" = "1" ]; then
+    GANANCIA="$(echo "$GANANCIA $FALTA" | awk '{printf "%.2f", $1 + $2}')"
+  fi
 done
 
 FINAL="$(medir_lufs "$SALIDA")"

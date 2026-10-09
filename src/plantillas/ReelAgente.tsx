@@ -31,12 +31,21 @@ const BOTON = { x: 540, y: 960 };
 const sonido = (nombre: string) => staticFile(`audio/${nombre}`);
 
 /**
- * El reel ya terminado, con la banda sonora y los efectos que remarcan
- * la entrada del agente.
+ * El reel: el video original con los efectos encima, sin audio.
+ *
+ * `hasta` permite cortarlo antes del final, que es lo que hace la version
+ * larga: usa el reel hasta despues del titular y sigue con sus propias
+ * escenas, en vez de cerrar con el logo a los 15 segundos.
  */
-export const ReelAgente: React.FC = () => {
+export const ReelVisual: React.FC<{ hasta?: number }> = ({
+  hasta = REEL.duracionFrames,
+}) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+
+  if (frame >= hasta) {
+    return null;
+  }
 
   // --- Camara ---------------------------------------------------------
   // Un asentamiento minimo al entrar el agente, nada mas. Cualquier
@@ -148,31 +157,55 @@ export const ReelAgente: React.FC = () => {
         duracion={18}
       />
 
-      {/* --- Audio ------------------------------------------------------ */}
-      {/* Antes del agente no hay musica: solo los tics sobre el silencio.
-          La percusion entra con el, y por eso el cambio se siente. */}
-      <Audio src={sonido("groove.wav")} from={MOMENTO.musica} volume={0.85} />
-
-      {TICS_MENSAJES.map((f, i) => (
-        <Audio
-          key={`tic-${f}-${i}`}
-          src={sonido("tic.wav")}
-          from={f}
-          // Los primeros entran despacio, los ultimos pegan mas fuerte.
-          volume={0.22 + 0.2 * (i / (TICS_MENSAJES.length - 1))}
-        />
-      ))}
-
-      <Audio src={sonido("riser.wav")} from={MOMENTO.riser} volume={0.45} />
-      <Audio src={sonido("whoosh.wav")} from={MOMENTO.whoosh} volume={0.55} />
-      <Audio src={sonido("impacto-agente.wav")} from={MOMENTO.agenteEntra} volume={0.95} />
-
-      {SWISHES_RESUELTOS.map((f, i) => (
-        <Audio key={`swish-${f}-${i}`} src={sonido("swish.wav")} from={f} volume={0.5} />
-      ))}
-
-      <Audio src={sonido("check.wav")} from={MOMENTO.check} volume={0.6} />
-      <Audio src={sonido("pop.wav")} from={MOMENTO.boton} volume={0.5} />
     </AbsoluteFill>
   );
 };
+
+/**
+ * Los sonidos del reel, alineados con lo que pasa en pantalla.
+ *
+ * No hay musica: la tension la construyen el ritmo de las notificaciones
+ * y el silencio de diez frames que queda antes del barrido.
+ */
+export const AudioReel: React.FC<{ conCierre?: boolean }> = ({
+  conCierre = true,
+}) => (
+  <>
+    {/* Las consultas que se acumulan. Tres variantes alternadas: repetir
+        siempre el mismo archivo suena a maquina. */}
+    {TICS_MENSAJES.map((f, i) => (
+      <Audio
+        key={`n-${f}`}
+        src={sonido(`notificacion-${(i % 3) + 1}.wav`)}
+        from={f}
+        // Las primeras entran discretas; las ultimas, algo mas presentes.
+        volume={0.44 + 0.26 * (i / (TICS_MENSAJES.length - 1))}
+      />
+    ))}
+
+    {/* La aparicion del agente. */}
+    <Audio src={sonido("barrido.wav")} from={MOMENTO.barrido} volume={0.62} />
+    <Audio src={sonido("activacion.wav")} from={MOMENTO.agenteEntra} volume={0.95} />
+
+    {/* El agente trabajando: textura de fondo y un clic por mensaje resuelto. */}
+    <Audio src={sonido("textura.wav")} from={MOMENTO.textura} volume={0.6} />
+    {SWISHES_RESUELTOS.map((f) => (
+      <Audio key={`c-${f}`} src={sonido("clic.wav")} from={f} volume={0.62} />
+    ))}
+
+    {/* Cero consultas. */}
+    <Audio src={sonido("logro.wav")} from={MOMENTO.check} volume={0.78} />
+
+    {conCierre ? (
+      <Audio src={sonido("marca.wav")} from={MOMENTO.marca} volume={0.8} />
+    ) : null}
+  </>
+);
+
+/** El reel corto, de punta a punta. */
+export const ReelAgente: React.FC = () => (
+  <>
+    <ReelVisual />
+    <AudioReel />
+  </>
+);

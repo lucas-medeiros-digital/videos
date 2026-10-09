@@ -212,3 +212,75 @@ Code. Dos cosas al usarlos:
 2. Reemplazá solamente los datos (textos, colores, logo, archivo) y dejá la
    estructura: escenas, tiempos y transiciones. Y cerrá siempre el pedido con
    «vertical 1080x1920 a 30 fps».
+
+---
+
+## El reel de Vínculo (audio y efectos sobre un video ya hecho)
+
+La composición `ReelAgente` toma un video terminado y le agrega banda sonora y
+efectos encima. Sirve de ejemplo de cómo trabajar sobre material que ya existe,
+sin rehacer la animación.
+
+```bash
+npm run render:reel        # salida/reel-agente-final.mp4
+npm run master:reel        # ajusta el volumen para redes
+```
+
+### Dónde se cambian los tiempos
+
+Todo el reel se maneja desde **`src/guion.ts`**. Ahí está en qué frame pasa cada
+cosa, medido cuadro por cuadro sobre el video original a 30 fps:
+
+| Frame | Segundo | Qué pasa |
+|---|---|---|
+| 12 | 0,4 | cae el primer mensaje sin responder |
+| 100 | 3,3 | arranca el riser, la cosa se descontrola |
+| 126 | 4,2 | whoosh de entrada |
+| **133** | **4,43** | **entra el agente** |
+| 139 | 4,6 | el cartel termina de asentarse |
+| 234 | 7,8 | el contador llega a cero |
+| 237 | 7,9 | aparece el tilde verde |
+| 303 | 10,1 | entra el titular |
+| 393 | 13,1 | logo de Vínculo |
+| 399 | 13,3 | botón Escribinos |
+
+Los mismos números manejan el audio y los efectos, así que mover un momento
+mueve las dos cosas juntas. Si reemplazás el video, estos son los únicos
+valores que hay que volver a medir.
+
+### Qué pasa cuando entra el agente
+
+Seis cosas al mismo tiempo, en el frame 133:
+
+- **Golpe de sonido**: sub que cae de 95 a 40 Hz, campana dorada y aire
+- **Destello** dorado que tapa la pantalla y se va en 12 frames
+- **Dos ondas expansivas** que salen desde el cartel
+- **Sacudón de cámara** de 26 px que se apaga en medio segundo
+- **Rebote de escala**: la imagen se achica un poco antes y rebota al entrar
+- **Barrido de luz** en diagonal, seis frames después
+
+Antes del golpe la viñeta se va cerrando y la cámara tiembla cada vez más; el
+contraste es lo que hace que la entrada se sienta. En el audio pasa lo mismo:
+la parte de la bronca está a -25 dB y el golpe a -11 dB.
+
+### La banda sonora
+
+No hay archivos descargados: todo se sintetiza con ffmpeg a partir de
+osciladores y ruido, en `scripts/generar-audio.sh`.
+
+```bash
+./scripts/generar-audio.sh    # regenera public/audio/*.wav
+```
+
+Son tres camas musicales (tensión en La menor, resolución en Do mayor, cierre en
+Fa mayor) y siete efectos. Para cambiar el carácter de la música, las notas
+están escritas como frecuencias dentro del script.
+
+### El volumen para redes
+
+`scripts/masterizar.sh` deja el video en **-14 LUFS** con pico real **-1 dBTP**,
+que es lo que esperan Instagram, TikTok y YouTube. Sin ese paso el reel se
+escucha más bajo que el resto del feed.
+
+Usa ganancia pareja y un limitador, no `loudnorm` en modo dinámico: ese
+comprime todo el video parejo y el golpe del agente deja de destacar.

@@ -5,10 +5,20 @@ import { PALABRAS_EJEMPLO } from "./datos/subtitulos";
 import { VideoConSubtitulos } from "./plantillas/VideoConSubtitulos";
 import { IntroTitulo } from "./plantillas/IntroTitulo";
 import { GraficoBarras } from "./plantillas/GraficoBarras";
+import { ReelAgente } from "./plantillas/ReelAgente";
+import { REEL } from "./guion";
 
 export const Root: React.FC = () => {
   return (
     <>
+      {/* El reel de Vinculo con banda sonora y efectos encima. */}
+      <Composition
+        id="ReelAgente"
+        component={ReelAgente}
+        durationInFrames={REEL.duracionFrames}
+        {...FORMATO_VERTICAL}
+      />
+
       {/* Plantilla principal: tu video del telefono con subtitulos encima. */}
       <Composition
         id="VideoConSubtitulos"

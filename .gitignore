@@ -9,3 +9,7 @@ public/*.mov
 public/*.MOV
 public/*.m4v
 !public/.gitkeep
+
+# Excepcion: el reel de Vinculo si va, para que el proyecto se pueda
+# renderizar apenas se clona.
+!public/reel-agente.mp4

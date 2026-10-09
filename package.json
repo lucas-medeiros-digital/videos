@@ -5,6 +5,8 @@
   "scripts": {
     "studio": "remotion studio",
     "render": "remotion render",
+    "render:reel": "remotion render ReelAgente salida/reel-agente-final.mp4",
+    "master:reel": "./scripts/masterizar.sh salida/reel-agente-final.mp4 salida/reel-agente-master.mp4",
     "render:subtitulos": "remotion render VideoConSubtitulos salida/video-con-subtitulos.mp4",
     "render:intro": "remotion render IntroTitulo salida/intro.mp4",
     "render:grafico": "remotion render GraficoBarras salida/grafico.mp4",
@@ -23,6 +25,7 @@
   "homepage": "https://github.com/lucas-medeiros-digital/videos#readme",
   "dependencies": {
     "@remotion/cli": "^4.0.534",
+    "@remotion/media": "4.0.534",
     "@remotion/media-utils": "^4.0.534",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

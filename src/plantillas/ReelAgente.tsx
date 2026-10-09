@@ -39,32 +39,34 @@ export const ReelAgente: React.FC = () => {
   const { fps } = useVideoConfig();
 
   // --- Camara ---------------------------------------------------------
-  // Tiembla cada vez mas mientras se amontonan los mensajes...
-  const tension = interpolate(frame, [MOMENTO.primerMensaje, MOMENTO.agenteEntra], [0, 5], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-    easing: Easing.in(Easing.quad),
-  });
-  // ...y pega un sacudon seco cuando entra el agente.
-  const golpe = interpolate(
-    frame,
-    [MOMENTO.agenteEntra, MOMENTO.agenteEntra + 14],
-    [26, 0],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) },
-  );
-  const temblor = sacudida(frame, Math.max(tension, golpe));
+  // Un asentamiento minimo al entrar el agente, nada mas. Cualquier
+  // temblor mayor, o sostenido antes del golpe, vuelve ilegibles los
+  // mensajes que son justamente lo que hay que leer.
+  // Ojo con el guardia de abajo: `extrapolateLeft: "clamp"` devuelve el
+  // PRIMER valor del rango, no cero, asi que sin el la sacudida se aplica
+  // tambien a todos los frames anteriores al golpe.
+  const asentamiento =
+    frame < MOMENTO.agenteEntra
+      ? 0
+      : interpolate(
+          frame,
+          [MOMENTO.agenteEntra, MOMENTO.agenteEntra + 9],
+          [3.5, 0],
+          { extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) },
+        );
+  const temblor = sacudida(frame, asentamiento);
 
   // Toma aire justo antes del golpe y despues rebota hasta su tamano normal.
   const anticipacion = interpolate(
     frame,
     [MOMENTO.agenteEntra - 7, MOMENTO.agenteEntra],
-    [1, 0.985],
+    [1, 0.992],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
   );
   const rebote =
     frame >= MOMENTO.agenteEntra
       ? 1 +
-        0.075 *
+        0.045 *
           (1 -
             spring({
               frame: frame - MOMENTO.agenteEntra,
@@ -77,7 +79,7 @@ export const ReelAgente: React.FC = () => {
   const vineta = interpolate(
     frame,
     [MOMENTO.primerMensaje, MOMENTO.agenteEntra - 5, MOMENTO.agenteEntra + 8],
-    [0, 0.55, 0],
+    [0, 0.34, 0],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
   );
 
@@ -147,9 +149,9 @@ export const ReelAgente: React.FC = () => {
       />
 
       {/* --- Banda sonora --------------------------------------------- */}
-      <Audio src={sonido("cama-tension.wav")} volume={0.5} />
-      <Audio src={sonido("cama-resolucion.wav")} from={MOMENTO.agenteEntra} volume={0.5} />
-      <Audio src={sonido("cama-final.wav")} from={MOMENTO.titular - 10} volume={0.55} />
+      <Audio src={sonido("cama-tension.wav")} from={MOMENTO.musica} volume={0.62} />
+      <Audio src={sonido("cama-resolucion.wav")} from={MOMENTO.agenteEntra} volume={0.6} />
+      <Audio src={sonido("cama-final.wav")} from={MOMENTO.titular - 10} volume={0.85} />
 
       {TICS_MENSAJES.map((f, i) => (
         <Audio
@@ -163,7 +165,7 @@ export const ReelAgente: React.FC = () => {
 
       <Audio src={sonido("riser.wav")} from={MOMENTO.riser} volume={0.45} />
       <Audio src={sonido("whoosh.wav")} from={MOMENTO.whoosh} volume={0.55} />
-      <Audio src={sonido("impacto-agente.wav")} from={MOMENTO.agenteEntra} volume={0.8} />
+      <Audio src={sonido("impacto-agente.wav")} from={MOMENTO.agenteEntra} volume={0.95} />
 
       {SWISHES_RESUELTOS.map((f, i) => (
         <Audio key={`swish-${f}-${i}`} src={sonido("swish.wav")} from={f} volume={0.5} />

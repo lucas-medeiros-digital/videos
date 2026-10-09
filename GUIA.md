@@ -250,31 +250,46 @@ valores que hay que volver a medir.
 
 ### Qué pasa cuando entra el agente
 
-Seis cosas al mismo tiempo, en el frame 133:
+Cinco cosas al mismo tiempo, en el frame 133:
 
-- **Golpe de sonido**: sub que cae de 95 a 40 Hz, campana dorada y aire
-- **Destello** dorado que tapa la pantalla y se va en 12 frames
+- **Golpe de sonido**: sub que cae de 130 a 41 Hz, acorde de Do mayor y campana
+- **Destello** dorado que se va en 12 frames
 - **Dos ondas expansivas** que salen desde el cartel
-- **Sacudón de cámara** de 26 px que se apaga en medio segundo
-- **Rebote de escala**: la imagen se achica un poco antes y rebota al entrar
+- **Asentamiento de cámara** de 3,5 px que se apaga en nueve frames
 - **Barrido de luz** en diagonal, seis frames después
 
-Antes del golpe la viñeta se va cerrando y la cámara tiembla cada vez más; el
-contraste es lo que hace que la entrada se sienta. En el audio pasa lo mismo:
-la parte de la bronca está a -25 dB y el golpe a -11 dB.
+La cámara **no tiembla** antes del golpe: los mensajes son lo que hay que leer y
+cualquier temblor sostenido los vuelve ilegibles. El contraste lo hace el audio,
+que pasa de -20 dB a -10 dB, y la armonía, que resuelve de La menor a Do mayor.
+
+> Cuidado con `extrapolateLeft: "clamp"` en `interpolate`: devuelve el **primer**
+> valor del rango, no cero. Sin un guardia explícito, un efecto pensado para el
+> frame 133 en adelante se aplica también a todos los frames anteriores.
 
 ### La banda sonora
 
-No hay archivos descargados: todo se sintetiza con ffmpeg a partir de
-osciladores y ruido, en `scripts/generar-audio.sh`.
+No hay archivos descargados: todo se sintetiza. Son dos scripts porque son dos
+problemas distintos.
 
 ```bash
-./scripts/generar-audio.sh    # regenera public/audio/*.wav
+./scripts/generar-audio.sh      # efectos, con ffmpeg
+node scripts/generar-musica.mjs # camas y golpe, con el sintetizador
 ```
 
-Son tres camas musicales (tensión en La menor, resolución en Do mayor, cierre en
-Fa mayor) y siete efectos. Para cambiar el carácter de la música, las notas
-están escritas como frecuencias dentro del script.
+Los **efectos** (tic, swish, whoosh, riser, check, pop) salen de expresiones de
+ffmpeg. Para un click corto alcanza y sobra.
+
+La **música** usa `scripts/sintetizador.mjs`, un sintetizador chico sin
+dependencias: osciladores, envolvente ADSR, filtro pasabajos de dos polos y un
+delay. Las expresiones de ffmpeg no dan para esto.
+
+Todo va a **120 BPM** (negra = 15 frames) y la música arranca en el frame 13
+justamente para que el golpe del agente caiga sobre un primer tiempo. La
+armonía sigue al video: **La menor** mientras las consultas se amontonan,
+**Do mayor** cuando entra el agente, **Fa mayor** en el cierre.
+
+Para cambiar el carácter, las notas están escritas por nombre
+(`"A1"`, `"C4"`) en `scripts/generar-musica.mjs`.
 
 ### El volumen para redes
 

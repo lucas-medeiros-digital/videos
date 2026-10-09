@@ -14,8 +14,15 @@ export const REEL = {
 export const MOMENTO = {
   /** El telefono aparece en pantalla. */
   inicio: 0,
-  /** Cae el primer mensaje sin responder. */
-  primerMensaje: 12,
+  /**
+   * Arranca la musica. No es un numero cualquiera: a 120 BPM la negra dura
+   * 15 frames, asi que desde el 13 el golpe del agente (frame 133) cae
+   * justo sobre el primer tiempo del tercer compas.
+   */
+  musica: 13,
+  /** Cae el primer mensaje sin responder. Suena apenas antes de que se vea
+   *  la burbuja: el oido se adelanta al ojo y la llegada se siente mejor. */
+  primerMensaje: 5,
   /** Arranca el riser: se nota que esto se va de las manos. */
   riser: 100,
   /** Whoosh de entrada, justo antes del golpe. */
@@ -45,8 +52,8 @@ export const MOMENTO = {
  * Cuando suena cada mensaje que llega. Los golpes se van juntando: el
  * exponente menor a 1 hace que los huecos se achiquen hacia el final.
  */
-export const TICS_MENSAJES: number[] = Array.from({ length: 16 }, (_, i) => {
-  const avance = i / 15;
+export const TICS_MENSAJES: number[] = Array.from({ length: 20 }, (_, i) => {
+  const avance = i / 19;
   return Math.round(
     MOMENTO.primerMensaje +
       (MOMENTO.agenteEntra - 6 - MOMENTO.primerMensaje) * Math.pow(avance, 0.62),

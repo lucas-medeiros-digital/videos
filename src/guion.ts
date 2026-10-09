@@ -15,14 +15,12 @@ export const MOMENTO = {
   /** El telefono aparece en pantalla. */
   inicio: 0,
   /**
-   * Arranca la musica. No es un numero cualquiera: a 120 BPM la negra dura
-   * 15 frames, asi que desde el 13 el golpe del agente (frame 133) cae
-   * justo sobre el primer tiempo del tercer compas.
+   * Arranca la percusion. Antes del agente no hay musica: solo los tics de
+   * los mensajes sobre el silencio, que es lo que construye el agobio.
    */
-  musica: 13,
-  /** Cae el primer mensaje sin responder. Suena apenas antes de que se vea
-   *  la burbuja: el oido se adelanta al ojo y la llegada se siente mejor. */
-  primerMensaje: 5,
+  musica: 133,
+  /** Cae el primer mensaje sin responder. */
+  primerMensaje: 1,
   /** Arranca el riser: se nota que esto se va de las manos. */
   riser: 100,
   /** Whoosh de entrada, justo antes del golpe. */
@@ -31,9 +29,9 @@ export const MOMENTO = {
   agenteEntra: 133,
   /** El cartel del agente termina de asentarse. */
   agenteAterriza: 139,
-  /** El agente empieza a despejar la bandeja. */
-  limpiezaDesde: 158,
-  limpiezaHasta: 232,
+  /** El agente despeja la bandeja: es un barrido corto. */
+  limpiezaDesde: 145,
+  limpiezaHasta: 166,
   /** El contador llega a cero. */
   contadorEnCero: 234,
   /** Aparece el tilde verde. */
@@ -49,28 +47,28 @@ export const MOMENTO = {
 } as const;
 
 /**
- * Cuando suena cada mensaje que llega. Los golpes se van juntando: el
- * exponente menor a 1 hace que los huecos se achiquen hacia el final.
+ * Cuando llega cada mensaje, medido sobre el video: se conto el area
+ * blanca cuadro por cuadro y se buscaron los escalones.
+ *
+ * El video las tira en una grilla pareja de 9 frames (0,3 s), no
+ * acelerando como parecia a simple vista. Los tics van dos frames antes
+ * del pico detectado: el sonido que llega junto con la imagen se percibe
+ * tarde, y adelantarlo un poco es lo que lo hace sentir pegado.
  */
-export const TICS_MENSAJES: number[] = Array.from({ length: 20 }, (_, i) => {
-  const avance = i / 19;
-  return Math.round(
-    MOMENTO.primerMensaje +
-      (MOMENTO.agenteEntra - 6 - MOMENTO.primerMensaje) * Math.pow(avance, 0.62),
-  );
-});
+const BURBUJAS = [1, 7, 15, 24, 33, 42, 51, 59, 69, 78, 87, 96];
+const ADELANTO = 2;
+
+export const TICS_MENSAJES: number[] = BURBUJAS.map((f) =>
+  Math.max(0, f - ADELANTO),
+);
 
 /**
- * Cuando suena cada mensaje que el agente resuelve. Al reves que los tics:
- * arrancan seguidos y se van espaciando mientras la bandeja se vacia.
+ * Cuando el agente despeja la bandeja. Tambien medido del video: pasa en
+ * un barrido corto, no repartido a lo largo de varios segundos.
  */
-export const SWISHES_RESUELTOS: number[] = Array.from({ length: 9 }, (_, i) => {
-  const avance = i / 8;
-  return Math.round(
-    MOMENTO.limpiezaDesde +
-      (MOMENTO.limpiezaHasta - MOMENTO.limpiezaDesde) * Math.pow(avance, 1.5),
-  );
-});
+export const SWISHES_RESUELTOS: number[] = [145, 149, 160, 166].map(
+  (f) => f - ADELANTO,
+);
 
 /** Paleta tomada del video: verde oscuro de fondo, dorado de marca. */
 export const MARCA = {

@@ -148,10 +148,10 @@ export const ReelAgente: React.FC = () => {
         duracion={18}
       />
 
-      {/* --- Banda sonora --------------------------------------------- */}
-      <Audio src={sonido("cama-tension.wav")} from={MOMENTO.musica} volume={0.62} />
-      <Audio src={sonido("cama-resolucion.wav")} from={MOMENTO.agenteEntra} volume={0.6} />
-      <Audio src={sonido("cama-final.wav")} from={MOMENTO.titular - 10} volume={0.85} />
+      {/* --- Audio ------------------------------------------------------ */}
+      {/* Antes del agente no hay musica: solo los tics sobre el silencio.
+          La percusion entra con el, y por eso el cambio se siente. */}
+      <Audio src={sonido("groove.wav")} from={MOMENTO.musica} volume={0.85} />
 
       {TICS_MENSAJES.map((f, i) => (
         <Audio

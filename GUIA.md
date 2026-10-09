@@ -299,3 +299,49 @@ escucha más bajo que el resto del feed.
 
 Usa ganancia pareja y un limitador, no `loudnorm` en modo dinámico: ese
 comprime todo el video parejo y el golpe del agente deja de destacar.
+
+
+---
+
+## Los otros dos videos
+
+Además del reel hay dos piezas más largas, armadas enteras en Remotion (no
+parten de ningún video previo).
+
+```bash
+npm run render:proceso    # 28 s  — los cuatro pasos
+npm run render:ventajas   # 29 s  — dolores y ventajas
+npm run master salida/proceso.mp4 salida/proceso-master.mp4
+```
+
+| Composición | Qué cuenta |
+|---|---|
+| `ProcesoAgente` | Qué pasa después de contratar: auditamos, entrenamos, conectamos, afinamos. Remata en el plazo: «Día 7, ya está respondiendo». |
+| `VentajasAgente` | Primero los cuatro dolores de hoy, después el mismo giro del reel («Entra tu agente») y las cuatro ventajas. |
+
+El texto de los dos vive en arreglos arriba de cada archivo (`PASOS`, `DOLORES`,
+`VENTAJAS`): se edita ahí, no entre el código de la animación.
+
+### La marca
+
+`src/componentes/marca.tsx` tiene lo compartido: paleta, tipografías, el fondo,
+el titular serif, el subrayado dorado, el logo y el cierre con el botón.
+Cambiar algo ahí lo cambia en los dos videos.
+
+- **Tipografías**: Playfair Display para los titulares (está en
+  `public/fuentes/`, se carga con `delayRender` para que no se renderice ningún
+  frame con la fuente de reemplazo) e Inter para el cuerpo.
+- **Logo**: `public/logo-vinculo.png`, recortado del reel original y con el
+  fondo transparente.
+
+> **`<Sequence>` y los frames**: dentro de una `<Sequence>`, `useCurrentFrame()`
+> devuelve el frame **local**, no el del video. Como todos los tiempos de estos
+> videos están escritos en frames globales, mezclarlos deja las escenas vacías
+> sin ningún error. Por eso se usa `<Escena desde={} hasta={}>` de
+> `marca.tsx`, que trabaja siempre con el frame global.
+
+### El audio de estos dos
+
+Usan `groove-largo.wav`, una versión de 30 s del mismo groove con secciones:
+entra flojo, levanta, baja en el medio y vuelve a subir. Encima van los mismos
+efectos que el reel.

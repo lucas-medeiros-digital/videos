@@ -7,10 +7,28 @@ import { IntroTitulo } from "./plantillas/IntroTitulo";
 import { GraficoBarras } from "./plantillas/GraficoBarras";
 import { ReelAgente } from "./plantillas/ReelAgente";
 import { REEL } from "./guion";
+import { ProcesoAgente, DURACION_PROCESO } from "./plantillas/ProcesoAgente";
+import { VentajasAgente, DURACION_VENTAJAS } from "./plantillas/VentajasAgente";
 
 export const Root: React.FC = () => {
   return (
     <>
+      {/* Que pasa despues de contratar el agente: los cuatro pasos. */}
+      <Composition
+        id="ProcesoAgente"
+        component={ProcesoAgente}
+        durationInFrames={DURACION_PROCESO}
+        {...FORMATO_VERTICAL}
+      />
+
+      {/* Los dolores que resuelve y lo que cambia con el agente. */}
+      <Composition
+        id="VentajasAgente"
+        component={VentajasAgente}
+        durationInFrames={DURACION_VENTAJAS}
+        {...FORMATO_VERTICAL}
+      />
+
       {/* El reel de Vinculo con banda sonora y efectos encima. */}
       <Composition
         id="ReelAgente"

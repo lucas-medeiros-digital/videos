@@ -48,28 +48,31 @@ export const MOMENTO = {
 } as const;
 
 /**
- * Cuando llega cada mensaje, medido sobre el video: se conto el area
- * blanca cuadro por cuadro y se buscaron los escalones.
+ * Cuando suena cada notificacion, y si va acentuada.
  *
- * El video las tira en una grilla pareja de 9 frames (0,3 s), no
- * acelerando como parecia a simple vista. Los tics van dos frames antes
- * del pico detectado: el sonido que llega junto con la imagen se percibe
- * tarde, y adelantarlo un poco es lo que lo hace sentir pegado.
+ * Las cinco primeras van clavadas sobre las burbujas del video (medidas
+ * cuadro por cuadro: caen en una grilla de 9 frames). Eso ancla el audio
+ * a la imagen. A partir de ahi se despegan y los huecos se achican de 9
+ * a 2 frames, hasta que dejan de leerse como golpes sueltos y se vuelven
+ * una textura que no para de crecer. Es lo que cuenta la demanda que se
+ * desborda, sin subir el volumen.
+ *
+ * El segundo valor marca las que coinciden con una burbuja: esas suenan
+ * con mas cuerpo, y son las que sostienen la sensacion de sincronia.
  */
-const BURBUJAS = [1, 7, 15, 24, 33, 42, 51, 59, 69, 78, 87, 96];
-const ADELANTO = 2;
-
-export const TICS_MENSAJES: number[] = BURBUJAS.map((f) =>
-  Math.max(0, f - ADELANTO),
-);
+export const NOTIFICACIONES: ReadonlyArray<readonly [number, boolean]> = [
+  [0, true], [6, true], [14, true], [23, true], [32, true], [40, true],
+  [48, false], [55, false], [62, false], [68, true], [74, false],
+  [80, false], [85, true], [90, false], [95, true], [99, false],
+  [103, false], [107, false], [111, false], [114, false], [117, false],
+  [120, false], [123, false], [125, false], [128, false], [130, false],
+];
 
 /**
  * Cuando el agente despeja la bandeja. Tambien medido del video: pasa en
  * un barrido corto, no repartido a lo largo de varios segundos.
  */
-export const SWISHES_RESUELTOS: number[] = [145, 149, 160, 166].map(
-  (f) => f - ADELANTO,
-);
+export const MENSAJES_RESUELTOS: number[] = [145, 149, 160, 166].map((f) => f - 2);
 
 /** Hasta donde llega el reel dentro de la version larga: despues del
  *  titular y antes de que aparezca el logo, que alli cierra todo el video. */

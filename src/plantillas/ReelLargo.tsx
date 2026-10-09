@@ -331,6 +331,7 @@ export const ReelLargo: React.FC = () => {
       {/* --- Audio --- */}
       {/* El reel sin su cierre: aca el cierre va al final de todo. */}
       <AudioReel conCierre={false} />
+      <Audio src={sonido("musica-larga.wav")} volume={0.5} />
 
       <Audio src={sonido("barrido.wav")} from={REEL_EN_LARGO - 18} volume={0.4} />
       {PASOS.map((p, i) => (
@@ -341,7 +342,6 @@ export const ReelLargo: React.FC = () => {
           volume={0.6}
         />
       ))}
-      <Audio src={sonido("textura.wav")} from={COMPARACION - 20} volume={0.5} />
       {HOY.map((_, i) => (
         <Audio
           key={`h${i}`}

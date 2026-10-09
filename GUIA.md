@@ -277,33 +277,63 @@ contraste lo hace el audio, que salta 8 dB sobre todo lo demás.
 
 ### El diseño de sonido
 
-**No hay música.** Solo efectos, pensados como el lanzamiento de un producto:
-mínimo, preciso y con aire alrededor de cada sonido.
-
 ```bash
 npm run sonido    # regenera public/audio/
 ```
 
 `scripts/sintetizador.mjs` es un sintetizador chico sin dependencias:
-osciladores, ADSR, filtros biquad, campanas FM y una reverb de placa. Tres
-decisiones lo ordenan todo:
+osciladores, ADSR, filtros biquad, campanas FM y una reverb de placa. Cuatro
+decisiones ordenan toda la paleta:
 
-- Las campanas son **FM con relación no entera** (2,76 · 3,47): eso da el
-  timbre cristalino, metálico sin ser estridente.
-- **Todo lleva reverb.** Un sonido seco suena barato.
-- La tensión se construye con **ritmo y silencio**, nunca subiendo el volumen.
-  Los 10 frames de silencio entre la última notificación y el barrido son los
-  que hacen que la entrada del agente se sienta.
+- **Tres capas por efecto**: transitorio, cuerpo y cola. Un sonido de una sola
+  capa suena barato por bueno que sea el timbre.
+- **Reverb con pre-delay.** El hueco de 12 a 26 ms entre el sonido y su cola es
+  lo que deja escuchar el espacio en vez de empastar.
+- **Ancho estéreo por Haas**, no por paneo: el mismo sonido corrido unos
+  milisegundos se percibe ancho, no como dos sonidos.
+- La tensión se construye con **ritmo y silencio**, nunca con volumen.
 
 | Sonido | Dónde |
 |---|---|
-| `notificacion-1/2/3` | Cada consulta que llega. Tres variantes alternadas: repetir una sola suena a máquina. |
+| `notificacion-1/2/3` (+ `-acento`) | Cada consulta que llega. |
 | `barrido` | La subida que anuncia al agente. |
-| `activacion` | El agente. Chasquido, sub, campanas y cola larga. |
-| `clic` · `confirmacion` | El agente trabajando. Táctiles y muy al fondo. |
-| `textura` | Aire de fondo en ese tramo, casi inaudible. |
+| `activacion` | El agente. Chasquido, sub, campanas en quinta y cola larga. |
+| `clic` · `confirmacion` | El agente trabajando. Táctiles y al fondo. |
 | `logro` | Cero consultas. Cristalino arriba, cálido abajo. |
 | `marca` | El cierre: una subida y una nota que resuelve. |
+
+**Las notificaciones** son un toque corto y seco, no una campana: chasquido,
+cuerpo de madera que cae de tono y una chispa aguda. Suenan 26 veces en cuatro
+segundos, así que cada una tiene que ser breve y sin cola — lo que se acumula
+es el ritmo, no el sonido.
+
+Su patrón está en `NOTIFICACIONES`, en `src/guion.ts`. Las cinco primeras van
+clavadas sobre las burbujas del video; a partir de ahí se despegan y los huecos
+se achican **de 9 a 2 frames**, hasta que dejan de leerse como golpes sueltos y
+se vuelven una textura. Las que coinciden con una burbuja llevan algo de grave
+y suenan con más cuerpo: así destacan sin subir de volumen.
+
+### La música
+
+`musica-corta.wav` (16 s) y `musica-larga.wav` (46 s), las dos del mismo
+material y con el mismo arranque.
+
+Va **debajo de todo**, al 50%: sostiene, no compite. El arco armónico sigue al
+video:
+
+| Tramo | Acorde | Por qué |
+|---|---|---|
+| Se acumulan las consultas | Do **suspendido** | No es mayor ni menor: no resuelve, y esa falta de resolución es la tensión. |
+| Entra el agente | Do mayor | Resuelve, se abre el filtro y entra el sub. |
+| El titular | Fa mayor | Más cálido, deja respirar. |
+| Los pasos (larga) | La · Fa · Do · Sol | Una vuelta por paso, el motivo sostiene. |
+| El cierre | Do mayor con novena | La novena es lo que le da el brillo. |
+
+Dos cosas hacen que no suene a sintetizador barato. El pad son **tres sierras
+por nota apenas desafinadas** entre sí: entran y salen de fase lentamente y el
+sonido respira. Y hay un **motivo de cinco notas** (C–E–G–E–D) que vuelve en
+cada escena que hay que sostener: es lo único que se recuerda de la música, así
+que no cambia nunca.
 
 ### El volumen para redes
 

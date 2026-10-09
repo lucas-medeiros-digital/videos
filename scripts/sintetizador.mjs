@@ -189,12 +189,19 @@ export class Pista {
    * tiempos de retardo son primos entre si a proposito: si fueran
    * multiplos, sus repeticiones coincidirian y se escucharia una nota.
    */
-  reverb({ tiempo = 1.6, mezcla = 0.26, amplitud = 1 } = {}) {
+  reverb({ tiempo = 1.6, mezcla = 0.26, amplitud = 1, preDelay = 0.018 } = {}) {
     const PEINES = [1557, 1617, 1491, 1422];
     const PASATODO = [225, 556];
+    const adelanto = Math.round(preDelay * SR);
 
     const procesar = (entrada, desfase) => {
       const seco = Float64Array.from(entrada);
+      // La cola arranca unos milisegundos despues del sonido. Sin ese hueco
+      // el sonido y su reverb se superponen y todo suena empastado.
+      const fuente = new Float64Array(this.n);
+      for (let n = adelanto; n < this.n; n++) {
+        fuente[n] = seco[n - adelanto];
+      }
       const humedo = new Float64Array(this.n);
 
       for (const base of PEINES) {
@@ -209,7 +216,7 @@ export class Pista {
           // Un pasabajos dentro del lazo: los agudos se apagan antes que
           // los graves, igual que en una sala real.
           filtrado = leido * 0.26 + filtrado * 0.74;
-          buffer[i] = seco[n] + filtrado * realimentacion;
+          buffer[i] = fuente[n] + filtrado * realimentacion;
           i = (i + 1) % retardo;
         }
       }
@@ -553,6 +560,64 @@ export const moldear = (muestras, puntos) => {
       if (avance > a1) g = g1;
     }
     salida[i] = muestras[i] * g;
+  }
+  return salida;
+};
+
+// --- Acabado -----------------------------------------------------------
+
+/**
+ * Realce de agudos de un polo. Es lo que da el "aire" de un sonido
+ * producido: sube la banda alta sin tocar el cuerpo.
+ */
+export const brillo = (muestras, { desde = 4000, cantidad = 0.5 } = {}) => {
+  const n = muestras.length;
+  const salida = new Float64Array(n);
+  const a = 1 - Math.exp((-2 * Math.PI * desde) / SR);
+  let bajo = 0;
+  for (let i = 0; i < n; i++) {
+    bajo += a * (muestras[i] - bajo);
+    const alto = muestras[i] - bajo;
+    salida[i] = muestras[i] + alto * cantidad;
+  }
+  return salida;
+};
+
+/**
+ * Ancho estereo por efecto Haas: el mismo sonido retrasado unos pocos
+ * milisegundos en un canal se percibe ancho, no como dos sonidos.
+ * Arriba de unos 25 ms deja de funcionar y se escucha como eco.
+ */
+export const ancho = (pista, muestras, { segundo = 0, ms = 11, gan = 1 } = {}) => {
+  pista.poner(segundo, muestras, { gan, pan: -0.55 });
+  pista.poner(segundo + ms / 1000, muestras, { gan: gan * 0.82, pan: 0.55 });
+  return pista;
+};
+
+/**
+ * Golpe de madera o plastico: un transitorio corto y un cuerpo que cae de
+ * tono enseguida. Es el sonido de "algo que aparece", no de una campana.
+ */
+export const toque = ({
+  desde = 940,
+  hasta = 520,
+  dur = 0.22,
+  gan = 0.4,
+  caida = 34,
+  cuerpo = 0.55,
+} = {}) => {
+  const n = Math.ceil(dur * SR);
+  const salida = new Float64Array(n);
+  let fase = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / SR;
+    const f = hasta + (desde - hasta) * Math.exp(-70 * t);
+    fase += f / SR;
+    const nucleo = Math.sin(2 * Math.PI * fase);
+    // Un segundo parcial apenas desafinado le saca el tono puro de seno.
+    const color = Math.sin(2 * Math.PI * fase * 2.41) * 0.18;
+    const ataque = Math.min(t / 0.0012, 1);
+    salida[i] = (nucleo + color) * cuerpo * Math.exp(-caida * t) * ataque * gan;
   }
   return salida;
 };

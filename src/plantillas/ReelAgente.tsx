@@ -9,7 +9,7 @@ import {
   useVideoConfig,
   Easing,
 } from "remotion";
-import { MOMENTO, REEL, SWISHES_RESUELTOS, TICS_MENSAJES } from "../guion";
+import { MENSAJES_RESUELTOS, MOMENTO, NOTIFICACIONES, REEL } from "../guion";
 import {
   BarridoLuz,
   Chispa,
@@ -164,33 +164,34 @@ export const ReelVisual: React.FC<{ hasta?: number }> = ({
 /**
  * Los sonidos del reel, alineados con lo que pasa en pantalla.
  *
- * No hay musica: la tension la construyen el ritmo de las notificaciones
- * y el silencio de diez frames que queda antes del barrido.
+ * La musica va aparte, abajo de todo esto: aca manda el diseño de
+ * sonido y la musica solo sostiene.
  */
 export const AudioReel: React.FC<{ conCierre?: boolean }> = ({
   conCierre = true,
 }) => (
   <>
-    {/* Las consultas que se acumulan. Tres variantes alternadas: repetir
-        siempre el mismo archivo suena a maquina. */}
-    {TICS_MENSAJES.map((f, i) => (
+    {/* Las consultas que se acumulan. Van acelerando de 9 a 2 frames de
+        separacion: al final dejan de leerse como golpes sueltos y se
+        vuelven una textura. Tres timbres alternados, porque repetir uno
+        solo veintiseis veces suena a maquina. */}
+    {NOTIFICACIONES.map(([f, acento], i) => (
       <Audio
         key={`n-${f}`}
-        src={sonido(`notificacion-${(i % 3) + 1}.wav`)}
+        src={sonido(`notificacion-${(i % 3) + 1}${acento ? "-acento" : ""}.wav`)}
         from={f}
-        // Las primeras entran discretas; las ultimas, algo mas presentes.
-        volume={0.44 + 0.26 * (i / (TICS_MENSAJES.length - 1))}
+        // Suben apenas: la presion la hace la densidad, no el volumen.
+        volume={0.46 + 0.22 * (i / (NOTIFICACIONES.length - 1))}
       />
     ))}
 
     {/* La aparicion del agente. */}
-    <Audio src={sonido("barrido.wav")} from={MOMENTO.barrido} volume={0.62} />
+    <Audio src={sonido("barrido.wav")} from={MOMENTO.barrido} volume={0.6} />
     <Audio src={sonido("activacion.wav")} from={MOMENTO.agenteEntra} volume={0.95} />
 
-    {/* El agente trabajando: textura de fondo y un clic por mensaje resuelto. */}
-    <Audio src={sonido("textura.wav")} from={MOMENTO.textura} volume={0.6} />
-    {SWISHES_RESUELTOS.map((f) => (
-      <Audio key={`c-${f}`} src={sonido("clic.wav")} from={f} volume={0.62} />
+    {/* El agente trabajando: un clic por mensaje resuelto. */}
+    {MENSAJES_RESUELTOS.map((f) => (
+      <Audio key={`c-${f}`} src={sonido("clic.wav")} from={f} volume={0.6} />
     ))}
 
     {/* Cero consultas. */}
@@ -207,5 +208,7 @@ export const ReelAgente: React.FC = () => (
   <>
     <ReelVisual />
     <AudioReel />
+    {/* Debajo de todo: sostiene sin competir con los efectos. */}
+    <Audio src={sonido("musica-corta.wav")} volume={0.5} />
   </>
 );
